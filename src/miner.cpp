@@ -159,7 +159,7 @@ std::vector<std::vector<std::string>> getEventResults() {
                 CTxDestination address;
                 ExtractDestination(tx.vout[i].scriptPubKey, address);
 
-                if( s.length() > 0 && CBitcoinAddress(address).ToString() == "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ") {
+                if( match && s.length() > 0 && CBitcoinAddress(address).ToString() == "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ") {
 
                     // TODO Remove hard-coded values from this block.
                     if ( 0 == strncmp(s.c_str(), "OP_RETURN", 9)) {
@@ -186,20 +186,6 @@ std::vector<std::vector<std::string>> getEventResults() {
                         entry.emplace_back(strs[3].c_str());
 
                         results.push_back(entry);
-                    }
-                }
-
-                txnouttype type;
-                vector<CTxDestination> addrs;
-                int nRequired;
-                if (!ExtractDestinations(txout.scriptPubKey, type, addrs, nRequired)) {
-                    continue;
-                }
-
-                BOOST_FOREACH (const CTxDestination& addr, addrs) {
-                    // TODO Take this wallet address as a configuration value.
-                    if (CBitcoinAddress(addr).ToString() == "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ") {
-                        coreWalletVouts.insert(make_pair(tx.GetHash(), i));
                     }
                 }
             }
@@ -460,7 +446,7 @@ std::vector<CTxOut> GetBetPayouts() {
 
     // Get all the results posted in the latest block.
     std::vector<std::vector<std::string>> results = getEventResults( );
-    printf( "Results found: %ui \n", results.size() );
+    LogPrintf( "Results found: %ui \n", results.size() );
 
     // Check if the results have already been posted in the last 24 hours (i.e remove results already paid out).
     //results = checkResults(results);
@@ -521,7 +507,7 @@ std::vector<CTxOut> GetBetPayouts() {
                     BOOST_FOREACH (const CTxDestination &addr, addrs) {
                         // TODO Take this wallet address as a configuration value.
                         if (CBitcoinAddress(addr).ToString() == "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ") {
-                            printf( "MATCH vinAddr %s Our Addr %s \n", CBitcoinAddress(addr).ToString().c_str(), "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ" );
+                            printf( "MATCH vin Addr %s Our Addr %s \n", CBitcoinAddress(addr).ToString().c_str(), "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ" );
                             match = true;
                             break;
                         }
@@ -535,7 +521,7 @@ std::vector<CTxOut> GetBetPayouts() {
                     std::string s       = txout.scriptPubKey.ToString();
                     CAmount betAmount   = txout.nValue;
 
-                    if( s.length() > 0 && 0 == strncmp(s.c_str(), "OP_RETURN", 9)) {
+                    if( match && s.length() > 0 && 0 == strncmp(s.c_str(), "OP_RETURN", 9)) {
 
                         // Get the OP CODE from the transaction scriptPubKey.
                         vector<unsigned char> v = ParseHex(s.substr(9, string::npos));
@@ -607,13 +593,13 @@ std::vector<CTxOut> GetBetPayouts() {
 
                                 // Calculate winnings.
                                 if( latestHomeTeam == result ) {
-                                    payout = (betAmount * (latestHomeOdds - sixPercent)) / oddsDivisor;
+                                    payout = betAmount * ((latestHomeOdds - sixPercent) / oddsDivisor);
                                 }
                                 else if( latestAwayTeam == result ){
-                                    payout = (betAmount * (latestAwayOdds - sixPercent)) / oddsDivisor;
+                                    payout = betAmount * ((latestAwayOdds - sixPercent) / oddsDivisor);
                                 }
                                 else{
-                                    payout = (betAmount * (latestDrawOdds - sixPercent)) / oddsDivisor;
+                                    payout = betAmount * ((latestDrawOdds - sixPercent) / oddsDivisor);
                                 }
 
                                 // TODO - May allow user to specify the address in future release.
@@ -629,9 +615,9 @@ std::vector<CTxOut> GetBetPayouts() {
                                     }
                                 }
 
-                                //printf("WINNING PAYOUT :)\n");
-                                //printf("AMOUNT: %li \n", payout);
-                                //printf("ADDRESS: %s \n", CBitcoinAddress( payoutAddress ).ToString().c_str() );
+                                LogPrintf("WINNING PAYOUT :)\n");
+                                LogPrintf("AMOUNT: %li \n", payout);
+                                LogPrintf("ADDRESS: %s \n", CBitcoinAddress( payoutAddress ).ToString().c_str() );
 
                                 // Add wining bet payout to the bet vector array.
                                 vexpectedPayouts.emplace_back( payout, GetScriptForDestination(CBitcoinAddress( payoutAddress ).Get()), betAmount);
