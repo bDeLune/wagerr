@@ -3285,7 +3285,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     // Calculate the expected bet payouts.
     // Only look for events, bets and results after a given block on testnet. Full of test data.
     std::vector<CTxOut> vExpectedPayouts;
-    if( CBaseChainParams::TESTNET && pindex->nHeight > 44837){
+    if( CBaseChainParams::TESTNET && pindex->nHeight > 20334){
 
 
         printf("\nMAIN BLOCK: %i \n", (pindex->nHeight ));

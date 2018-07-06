@@ -962,7 +962,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
 
             // Create the bet payouts vector and add to the coinstake to payout winning bets.
             // Only look for events, bets and results after a given block on testnet. Full of test data.
-            if( CBaseChainParams::TESTNET && nHeight > 44837){
+            if( CBaseChainParams::TESTNET && nHeight > 20334){
 
                 printf("\nMINER BLOCK: %i \n", nHeight);
 
