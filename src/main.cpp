@@ -3284,9 +3284,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
     // Calculate the expected bet payouts.
     // Only look for events, bets and results after a given block on testnet. Full of test data.
-    if( CBaseChainParams::TESTNET && pindex->nHeight > 47960){
+    std::vector<CTxOut> vExpectedPayouts;
+    if( CBaseChainParams::TESTNET && pindex->nHeight > 44837){
 
-        std::vector<CTxOut> vExpectedPayouts;
 
         printf("\nMAIN BLOCK: %i \n", (pindex->nHeight ));
 
@@ -3298,24 +3298,24 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             printf("MAIN EXPECTED: %s \n", vExpectedPayouts[l].ToString().c_str());
         }
 
-        // Validate bet payouts nExpectedMint against the block pindex->nMint to ensure connect block wont pay to much.
-        if (!IsBlockValueValid(block, nExpectedMint, pindex->nMint)) {
-            return state.DoS(100,
-                     error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",
-                           FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)),
-                     REJECT_INVALID, "bad-cb-amount");
-        }
-
-        // Validate the payout vector against the block being submitted.
-        //if (!IsBlockPayoutsValid(vExpectedPayouts, block)) {
-        //        printf("Betting payout tx's did not match the payout tx's in the block. \n");
-        //
-        //        return state.DoS(100, error("ConnectBlock() : Bet payout TX's don't match up with block payout TX's %i ", pindex->nHeight ), REJECT_INVALID, "bad-cb-payout");
-        //    }
-        //}
-
-        vExpectedPayouts.clear();
     }
+    // Validate bet payouts nExpectedMint against the block pindex->nMint to ensure connect block wont pay to much.
+    if (!IsBlockValueValid(block, nExpectedMint, pindex->nMint)) {
+        return state.DoS(100,
+                    error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",
+                        FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)),
+                    REJECT_INVALID, "bad-cb-amount");
+    }
+
+    // Validate the payout vector against the block being submitted.
+    //if (!IsBlockPayoutsValid(vExpectedPayouts, block)) {
+    //        printf("Betting payout tx's did not match the payout tx's in the block. \n");
+    //
+    //        return state.DoS(100, error("ConnectBlock() : Bet payout TX's don't match up with block payout TX's %i ", pindex->nHeight ), REJECT_INVALID, "bad-cb-payout");
+    //    }
+    //}
+
+    vExpectedPayouts.clear();
 
     // zerocoin accumulator: if a new accumulator checkpoint was generated, check that it is the correct value
     if (!fVerifyingBlocks && pindex->nHeight >= Params().Zerocoin_StartHeight() && pindex->nHeight % 10 == 0) {

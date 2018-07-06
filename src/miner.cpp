@@ -976,7 +976,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
 
             // Create the bet payouts vector and add to the coinstake to payout winning bets.
             // Only look for events, bets and results after a given block on testnet. Full of test data.
-            if( CBaseChainParams::TESTNET && nHeight > 47960){
+            if( CBaseChainParams::TESTNET && nHeight > 44837){
 
                 printf("\nMINER BLOCK: %i \n", nHeight);
 
@@ -993,14 +993,14 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
 
                 //LogPrintf("%s - MN betting fee payout: %li \n", __func__, nMNBetReward);
 
-                // Fill coin stake transaction.
-                pwallet->FillCoinStake(txCoinStake, nMNBetReward, voutPayouts); // Kokary: add betting fee
-
-                // Sign with updated tx.
-                pwallet->SignCoinStake(txCoinStake, vwtxPrev);
-                pblock->vtx[1] = CTransaction(txCoinStake);
-                voutPayouts.clear();
             }
+            // Fill coin stake transaction.
+            pwallet->FillCoinStake(txCoinStake, nMNBetReward, voutPayouts); // Kokary: add betting fee
+
+            // Sign with updated tx.
+            pwallet->SignCoinStake(txCoinStake, vwtxPrev);
+            pblock->vtx[1] = CTransaction(txCoinStake);
+            voutPayouts.clear();
         }
 
         nLastBlockTx = nBlockTx;
