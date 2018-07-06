@@ -642,6 +642,11 @@ UniValue placebet(const UniValue& params, bool fHelp)
 
     // Amount
     CAmount nAmount = AmountFromValue(params[2]);
+    printf( "nAmount : %li", nAmount );
+    
+    if( nAmount > 1000000000000){
+        throw JSONRPCError(RPC_BET_DETAILS_ERROR, "Error: Incorrect bet amount. Please ensure your bet is not greater than 10,000 WGR.");
+    }
 
     // Wallet comments
     CWalletTx wtx;

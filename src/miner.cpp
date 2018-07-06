@@ -122,33 +122,33 @@ std::vector<std::vector<std::string>> getEventResults() {
         BOOST_FOREACH(CTransaction& tx, block.vtx) {
 
             // Ensure the result TX has been posted by Oracle wallet by looking at vins.
-//            const CTxIn &txin = tx.vin[0];
-//            COutPoint prevout = txin.prevout;
-//            bool match        = false;
-//
-//            uint256 hashBlock;
-//            CTransaction txPrev;
-//            if (GetTransaction(prevout.hash, txPrev, hashBlock, true)) {
-//
-//                const CTxOut &txout = txPrev.vout[0];
-//                std::string scriptPubKey = txout.scriptPubKey.ToString();
-//
-//                txnouttype type;
-//                vector<CTxDestination> addrs;
-//                int nRequired;
-//                if (!ExtractDestinations(txout.scriptPubKey, type, addrs, nRequired)) {
-//                    continue;
-//                }
-//
-//                BOOST_FOREACH (const CTxDestination &addr, addrs) {
-//                    // TODO Take this wallet address as a configuration value.
-//                    if (CBitcoinAddress(addr).ToString() == "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ") {
-//                        printf( "MATCH vinAddr %s Our Addr %s \n", CBitcoinAddress(addr).ToString().c_str(), "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ" );
-//                        match = true;
-//                        break;
-//                    }
-//                }
-//            }
+            const CTxIn &txin = tx.vin[0];
+            COutPoint prevout = txin.prevout;
+            bool match        = false;
+
+            uint256 hashBlock;
+            CTransaction txPrev;
+            if (GetTransaction(prevout.hash, txPrev, hashBlock, true)) {
+
+                const CTxOut &txout = txPrev.vout[0];
+                std::string scriptPubKey = txout.scriptPubKey.ToString();
+
+                txnouttype type;
+                vector<CTxDestination> addrs;
+                int nRequired;
+                if (!ExtractDestinations(txout.scriptPubKey, type, addrs, nRequired)) {
+                    continue;
+                }
+
+                BOOST_FOREACH (const CTxDestination &addr, addrs) {
+                    // TODO Take this wallet address as a configuration value.
+                    if (CBitcoinAddress(addr).ToString() == "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ") {
+                        printf( "MATCH vinAddr %s Our Addr %s \n", CBitcoinAddress(addr).ToString().c_str(), "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ" );
+                        match = true;
+                        break;
+                    }
+                }
+            }
 
             // Look for result OP RETURN code in the tx vouts.
             for(unsigned int i = 0; i < tx.vout.size(); i++) {
@@ -500,33 +500,33 @@ std::vector<CTxOut> GetBetPayouts() {
             BOOST_FOREACH(CTransaction &tx, block.vtx) {
 
                 // Ensure the event TX has been posted by Oracle wallet by looking at vins.
-//                const CTxIn &txin = tx.vin[0];
-//                COutPoint prevout = txin.prevout;
-//                bool match        = false;
-//
-//                uint256 hashBlock;
-//                CTransaction txPrev;
-//                if (GetTransaction(prevout.hash, txPrev, hashBlock, true)) {
-//
-//                    const CTxOut &txout = txPrev.vout[0];
-//                    std::string scriptPubKey = txout.scriptPubKey.ToString();
-//
-//                    txnouttype type;
-//                    vector<CTxDestination> addrs;
-//                    int nRequired;
-//                    if (!ExtractDestinations(txout.scriptPubKey, type, addrs, nRequired)) {
-//                        continue;
-//                    }
-//
-//                    BOOST_FOREACH (const CTxDestination &addr, addrs) {
-//                        // TODO Take this wallet address as a configuration value.
-//                        if (CBitcoinAddress(addr).ToString() == "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ") {
-//                            printf( "MATCH vinAddr %s Our Addr %s \n", CBitcoinAddress(addr).ToString().c_str(), "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ" );
-//                            match = true;
-//                            break;
-//                        }
-//                    }
-//                }
+                const CTxIn &txin = tx.vin[0];
+                COutPoint prevout = txin.prevout;
+                bool match        = false;
+
+                uint256 hashBlock;
+                CTransaction txPrev;
+                if (GetTransaction(prevout.hash, txPrev, hashBlock, true)) {
+
+                    const CTxOut &txout = txPrev.vout[0];
+                    std::string scriptPubKey = txout.scriptPubKey.ToString();
+
+                    txnouttype type;
+                    vector<CTxDestination> addrs;
+                    int nRequired;
+                    if (!ExtractDestinations(txout.scriptPubKey, type, addrs, nRequired)) {
+                        continue;
+                    }
+
+                    BOOST_FOREACH (const CTxDestination &addr, addrs) {
+                        // TODO Take this wallet address as a configuration value.
+                        if (CBitcoinAddress(addr).ToString() == "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ") {
+                            printf( "MATCH vinAddr %s Our Addr %s \n", CBitcoinAddress(addr).ToString().c_str(), "TCQyQ6dm6GKfpeVvHWHzcRAjtKsJ3hX4AJ" );
+                            match = true;
+                            break;
+                        }
+                    }
+                }
 
                 // Check all TX vouts for an OP RETURN.
                 for(unsigned int i = 0; i < tx.vout.size(); i++) {
