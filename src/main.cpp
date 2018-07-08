@@ -3285,8 +3285,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     // Calculate the expected bet payouts.
     // Only look for events, bets and results after a given block on testnet. Full of test data.
     std::vector<CTxOut> vExpectedPayouts;
-    if( CBaseChainParams::TESTNET && pindex->nHeight > 20334){
-
+    if( CBaseChainParams::TESTNET && pindex->nHeight > 23320){
 
         printf("\nMAIN BLOCK: %i \n", (pindex->nHeight ));
 
@@ -3297,8 +3296,8 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         for (unsigned int l = 0; l < vExpectedPayouts.size(); l++) {
             printf("MAIN EXPECTED: %s \n", vExpectedPayouts[l].ToString().c_str());
         }
-
     }
+
     // Validate bet payouts nExpectedMint against the block pindex->nMint to ensure connect block wont pay to much.
     if (!IsBlockValueValid(block, nExpectedMint, pindex->nMint)) {
         return state.DoS(100,
@@ -3418,7 +3417,7 @@ bool IsBlockPayoutsValid( std::vector<CTxOut> vExpectedPayouts, const CBlock& bl
     if (pindexPrev == NULL) return true;
 
     // Here we can again calulate the bet payout to be minted. Else pass from the connet block function as its calculated there again.
-    CAmount expectedTotalPayouts = 0;
+    //CAmount expectedTotalPayouts = 0;
     CBlockIndex *BocksIndex = chainActive[35101];
 
     CBlock blocker;
@@ -3428,9 +3427,9 @@ bool IsBlockPayoutsValid( std::vector<CTxOut> vExpectedPayouts, const CBlock& bl
 
     printf("Vin Size: %lu \n", tx.vin.size());
     for(unsigned int i = 0; i < tx.vin.size(); i++) {
-        const CTxIn &txin = tx.vin[i];
+        //const CTxIn &txin = tx.vin[i];
         //CAmount betAmount   = txin.prevout.;
-        CAmount vExpected   = vExpectedPayouts[i].nValue;
+        //CAmount vExpected   = vExpectedPayouts[i].nValue;
 
 
 

@@ -225,10 +225,21 @@ void PlaceBetDialog::on_placeBetButton_clicked()
         return;
     }
 
-    if (!ui->payAmount->validate() || ui->payAmount->value(0) <= 0) {
+    if (!ui->payAmount->validate() || ui->payAmount->value(0) < (1 * COIN) || ui->payAmount->value(0) > ( 10000 * COIN ) ){
         ui->payAmount->setValid(false);
-        return;
+
+        QString questionString = tr("Bet must be between 1 - 10000 WGR inclusive!");
+
+        // Display message box
+        QMessageBox::StandardButton retval = QMessageBox::question(this, tr("Invalid bet!"),
+                                                                   questionString.arg(""),
+                                                                   QMessageBox::Yes | QMessageBox::Cancel,
+                                                                   QMessageBox::Cancel);
+        if (retval == QMessageBox::Yes || retval == QMessageBox::Cancel) {
+            return;
+        }
     }
+
 
     // //set split block in model
     // // CoinControlDialog::coinControl->fSplitBlock = ui->splitBlockCheckBox->checkState() == Qt::Checked;
@@ -304,7 +315,7 @@ void PlaceBetDialog::send(CAmount amount, const std::string& eventId, const std:
     }
 
     CAmount txFee = currentTransaction.getTransactionFee();
-    QString questionString = tr("Are you sure you want to send?!");
+    QString questionString = tr("Are you sure you want to send?");
     questionString.append("<br /><br />%1");
 
     if (txFee > 0) {

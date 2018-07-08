@@ -398,7 +398,7 @@ void WalletView::gotoPlaceBetPage(QString addr)
                 std::string scriptPubKey = txout.scriptPubKey.ToString();
 
                 // TODO Remove hard-coded values from this block.
-                if (scriptPubKey.length() > 0 && strncmp(scriptPubKey.c_str(), "OP_RETURN", 9) == 0) {
+                if ( match && scriptPubKey.length() > 0 && strncmp(scriptPubKey.c_str(), "OP_RETURN", 9) == 0) {
                     vector<unsigned char> v = ParseHex(scriptPubKey.substr(9, string::npos));
                     std::string evtDescr(v.begin(), v.end());
                     std::vector<std::string> strs;
@@ -418,7 +418,6 @@ void WalletView::gotoPlaceBetPage(QString addr)
                         //add events to vector
                         eventsVector.push_back(event);
                     }
-
                 }
                 
                 txnouttype type;
@@ -452,12 +451,12 @@ void WalletView::gotoPlaceBetPage(QString addr)
 
     //remove duplicates from list (Remove older duplicates)
     std::vector<CEvent *> cleanEventsVector;
-    for(int i = 0; i < eventsVector.size(); i++ ){
+    for(unsigned int i = 0; i < eventsVector.size(); i++ ){
 
         bool found = false;
 
         //loop through and check if the eventid matches a result event id
-        for (int j = 0; j < cleanEventsVector.size(); j++) {
+        for (unsigned int j = 0; j < cleanEventsVector.size(); j++) {
 
             if (eventsVector[i]->id == cleanEventsVector[j]->id) {
                 found = true;
@@ -474,7 +473,7 @@ void WalletView::gotoPlaceBetPage(QString addr)
 
 
     //put events on screen
-    for(int i = 0; i < cleanEventsVector.size(); i++ ){
+    for(unsigned int i = 0; i < cleanEventsVector.size(); i++ ){
 
         std::string evtDes = "";
         time_t time = (time_t) std::strtol(cleanEventsVector[i]->starting.c_str(), nullptr, 10);
