@@ -445,19 +445,15 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             std::vector<CTxOut> voutPayouts;
             CAmount nMNBetReward = 0;
 
-            // TODO: Marty remove -> Skip block used during testing,
-            if( nHeight > 21915) {
-                printf("\nMINER BLOCK: %i \n", nHeight);
+            //printf("\nMINER BLOCK: %i \n", nHeight);
+            voutPayouts = GetBetPayouts(nHeight - 1);
+            GetBlockPayouts(voutPayouts, nMNBetReward);
 
-                voutPayouts = GetBetPayouts(nHeight - 1);
-                GetBlockPayouts(voutPayouts, nMNBetReward);
+            //for (unsigned int l = 0; l < voutPayouts.size(); l++) {
+            //    logPrintf("%s - Including bet payment: %s \n", __func__, voutPayouts[l].ToString().c_str());
+            //}
 
-                //for (unsigned int l = 0; l < voutPayouts.size(); l++) {
-                //    logPrintf("%s - Including bet payment: %s \n", __func__, voutPayouts[l].ToString().c_str());
-                //}
-
-                //LogPrintf("%s - MN betting fee payout: %li \n", __func__, nMNBetReward);
-            }
+            //LogPrintf("%s - MN betting fee payout: %li \n", __func__, nMNBetReward);
 
             // Fill coin stake transaction.
             // pwallet->FillCoinStake(txCoinStake, nMNBetReward, voutPayouts); // Kokary: add betting fee
