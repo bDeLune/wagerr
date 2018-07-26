@@ -2955,7 +2955,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     // Calculate the expected bet payouts.
     std::vector<CTxOut> vExpectedPayouts;
 
-    if( pindex->nHeight > 20998 ) {
+    if( pindex->nHeight > 21915 ) {
         printf("\nMAIN BLOCK: %i \n", (pindex->nHeight));
 
         vExpectedPayouts = GetBetPayouts(pindex->nHeight - 1);
@@ -3147,7 +3147,7 @@ bool IsBlockPayoutsValid( std::vector<CTxOut> vExpectedPayouts, CBlock block ) {
             LogPrintf("Bet Address %s  - Expected Bet Address: %s \n", betAddrS.c_str(), expectedAddrS.c_str() );
 
             // Check vExpected matches the tx value.
-            if (vExpected != voutValue && betAddrS != expectedAddrS) {
+            if (vExpected != voutValue || betAddrS != expectedAddrS) {
                 LogPrintf("Validation failed! \n");
                 return false;
             }

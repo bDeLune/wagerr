@@ -445,22 +445,19 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             std::vector<CTxOut> voutPayouts;
             CAmount nMNBetReward = 0;
 
-            if( nHeight > 20998  ) {
+            // TODO: Marty remove -> Skip block used during testing,
+            if( nHeight > 21915) {
                 printf("\nMINER BLOCK: %i \n", nHeight);
 
                 voutPayouts = GetBetPayouts(nHeight - 1);
                 GetBlockPayouts(voutPayouts, nMNBetReward);
 
-                for (unsigned int l = 0; l < voutPayouts.size(); l++) {
-                    printf("MINER EXPECTED: %s \n", voutPayouts[l].ToString().c_str());
-                }
+                //for (unsigned int l = 0; l < voutPayouts.size(); l++) {
+                //    logPrintf("%s - Including bet payment: %s \n", __func__, voutPayouts[l].ToString().c_str());
+                //}
+
+                //LogPrintf("%s - MN betting fee payout: %li \n", __func__, nMNBetReward);
             }
-
-            //for (unsigned int l = 0; l < voutPayouts.size(); l++) {
-            //    logPrintf("%s - Including bet payment: %s \n", __func__, voutPayouts[l].ToString().c_str());
-            //}
-
-            //LogPrintf("%s - MN betting fee payout: %li \n", __func__, nMNBetReward);
 
             // Fill coin stake transaction.
             // pwallet->FillCoinStake(txCoinStake, nMNBetReward, voutPayouts); // Kokary: add betting fee
@@ -549,7 +546,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
 std::vector<std::vector<std::string>> getEventResults( int height ) {
 
     std::vector<std::vector<std::string>> results;
-    int nCurrentHeight = chainActive.Height();
     
     // Set the Oracle wallet address. 
     std::string OracleWalletAddr = "";
@@ -918,7 +914,6 @@ std::vector<CTxOut> GetBetPayouts( int height ) {
         }
 
         unsigned int oddsDivisor    = 10000;
-        unsigned int sixPercent     = 600;
         unsigned int latestHomeOdds = 0;
         unsigned int latestAwayOdds = 0;
         unsigned int latestDrawOdds = 0;
@@ -1075,7 +1070,7 @@ std::vector<CTxOut> GetBetPayouts( int height ) {
 
                                     // Only add valid payouts to the vector.
                                     if(payout > 0){
-                                        // Add wining bet payout to the bet vector array.
+                                        // Add wining bet payout to the bet vector.
                                         vexpectedPayouts.emplace_back(payout, GetScriptForDestination(CBitcoinAddress(payoutAddress).Get()), betAmount);
                                     }
                                 }
