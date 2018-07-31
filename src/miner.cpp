@@ -445,14 +445,9 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             std::vector<CTxOut> voutPayouts;
             CAmount nMNBetReward = 0;
 
-            printf("\nMINER BLOCK: %i \n", nHeight);
-
-            voutPayouts = GetBetPayouts();
+            //printf("\nMINER BLOCK: %i \n", nHeight);
+            voutPayouts = GetBetPayouts(nHeight - 1);
             GetBlockPayouts(voutPayouts, nMNBetReward);
-
-            for (unsigned int l = 0; l < voutPayouts.size(); l++) {
-                printf("MINER EXPECTED: %s \n", voutPayouts[l].ToString().c_str());
-            }
 
             //for (unsigned int l = 0; l < voutPayouts.size(); l++) {
             //    logPrintf("%s - Including bet payment: %s \n", __func__, voutPayouts[l].ToString().c_str());
@@ -461,16 +456,17 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             //LogPrintf("%s - MN betting fee payout: %li \n", __func__, nMNBetReward);
 
             // Fill coin stake transaction.
-//            pwallet->FillCoinStake(txCoinStake, nMNBetReward, voutPayouts); // Kokary: add betting fee
+            // pwallet->FillCoinStake(txCoinStake, nMNBetReward, voutPayouts); // Kokary: add betting fee
             if (pwallet->FillCoinStake(*pwallet, txCoinStake, nMNBetReward, voutPayouts, stakeInput)) {
                 LogPrintf("%s: filled coin stake tx [%s]\n", __func__, txCoinStake.ToString());
-            } else {
+            }
+            else {
                 LogPrintf("%s: failed to fill coin stake tx\n", __func__);
                 return NULL;
             }
 
             // Sign with updated tx.
-  //          pwallet->SignCoinStake(txCoinStake, vwtxPrev);
+            // pwallet->SignCoinStake(txCoinStake, vwtxPrev);
             voutPayouts.clear();
         }
 
@@ -543,10 +539,9 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
  *
  * @return results vector.
  */
-std::vector<std::vector<std::string>> getEventResults() {
+std::vector<std::vector<std::string>> getEventResults( int height ) {
 
     std::vector<std::vector<std::string>> results;
-    int nCurrentHeight = chainActive.Height();
     
     // Set the Oracle wallet address. 
     std::string OracleWalletAddr = "";
@@ -559,82 +554,77 @@ std::vector<std::vector<std::string>> getEventResults() {
 
     // Get the current block so we can look for any results in it.
     CBlockIndex *resultsBocksIndex = NULL;
-    resultsBocksIndex = chainActive[nCurrentHeight];
+    resultsBocksIndex = chainActive[height];
 
-    while (resultsBocksIndex) {
+    CBlock block;
+    ReadBlockFromDisk(block, resultsBocksIndex);
 
-        CBlock block;
-        ReadBlockFromDisk(block, resultsBocksIndex);
+    BOOST_FOREACH(CTransaction& tx, block.vtx) {
 
-        BOOST_FOREACH(CTransaction& tx, block.vtx) {
+        // Ensure the result TX has been posted by Oracle wallet by looking at the TX vins.
+        const CTxIn &txin = tx.vin[0];
+        COutPoint prevout = txin.prevout;
+        bool validResult  = false;
 
-            // Ensure the result TX has been posted by Oracle wallet by looking at the TX vins.
-            const CTxIn &txin = tx.vin[0];
-            COutPoint prevout = txin.prevout;
-            bool validResult  = false;
+        uint256 hashBlock;
+        CTransaction txPrev;
 
-            uint256 hashBlock;
-            CTransaction txPrev;
+        if (GetTransaction(prevout.hash, txPrev, hashBlock, true)) {
 
-            if (GetTransaction(prevout.hash, txPrev, hashBlock, true)) {
+            const CTxOut &txout      = txPrev.vout[0];
+            std::string scriptPubKey = txout.scriptPubKey.ToString();
 
-                const CTxOut &txout      = txPrev.vout[0];
-                std::string scriptPubKey = txout.scriptPubKey.ToString();
+            txnouttype type;
+            vector<CTxDestination> addrs;
+            int nRequired;
 
-                txnouttype type;
-                vector<CTxDestination> addrs;
-                int nRequired;
-
-                // Check all vouts for Oracle wallet address, if found we know it's a valid result posting.
-                if (ExtractDestinations(txout.scriptPubKey, type, addrs, nRequired)) {
-                    BOOST_FOREACH (const CTxDestination &addr, addrs) {
-                        // TODO Take this wallet address as a configuration value.
-                        if (CBitcoinAddress(addr).ToString() == OracleWalletAddr) {
-                            validResult = true;
-                        }
-                    }
-                }
-            }
-
-            if( validResult ) {
-
-                // Look for result OP RETURN code in the tx vouts.
-                for (unsigned int i = 0; i < tx.vout.size(); i++) {
-
-                    const CTxOut &txout = tx.vout[i];
-                    std::string scriptPubKey = txout.scriptPubKey.ToString();
-
-                    // TODO Remove hard-coded values from this block.
-                    if(scriptPubKey.length() > 0 && strncmp(scriptPubKey.c_str(), "OP_RETURN", 9) == 0) {
-
-                        // Get OP CODE from transactions.
-                        vector<unsigned char> v = ParseHex(scriptPubKey.substr(9, string::npos));
-                        std::string betDescr(v.begin(), v.end());
-                        std::vector<std::string> strs;
-
-                        boost::split(strs, betDescr, boost::is_any_of("|"));
-
-                        // Only look for result transactions.
-                        if (strs.size() != 4 || strs[0] != "3") {
-                            break;
-                        }
-
-                        LogPrintf("RESULT OP_RETURN -> %s \n", betDescr.c_str());
-
-                        std::vector<string> entry;
-
-                        // Event ID.
-                        entry.emplace_back(strs[2].c_str());
-                        // Result
-                        entry.emplace_back(strs[3].c_str());
-
-                        results.push_back(entry);
+            // Check all vouts for Oracle wallet address, if found we know it's a valid result posting.
+            if (ExtractDestinations(txout.scriptPubKey, type, addrs, nRequired)) {
+                BOOST_FOREACH (const CTxDestination &addr, addrs) {
+                    // TODO Take this wallet address as a configuration value.
+                    if (CBitcoinAddress(addr).ToString() == OracleWalletAddr) {
+                        validResult = true;
                     }
                 }
             }
         }
 
-        resultsBocksIndex = chainActive.Next(resultsBocksIndex);
+        if( validResult ) {
+
+            // Look for result OP RETURN code in the tx vouts.
+            for (unsigned int i = 0; i < tx.vout.size(); i++) {
+
+                const CTxOut &txout = tx.vout[i];
+                std::string scriptPubKey = txout.scriptPubKey.ToString();
+
+                // TODO Remove hard-coded values from this block.
+                if(scriptPubKey.length() > 0 && strncmp(scriptPubKey.c_str(), "OP_RETURN", 9) == 0) {
+
+                    // Get OP CODE from transactions.
+                    vector<unsigned char> v = ParseHex(scriptPubKey.substr(9, string::npos));
+                    std::string betDescr(v.begin(), v.end());
+                    std::vector<std::string> strs;
+
+                    boost::split(strs, betDescr, boost::is_any_of("|"));
+
+                    // Only look for result transactions.
+                    if (strs.size() != 4 || strs[0] != "3") {
+                        break;
+                    }
+
+                    LogPrintf("RESULT OP_RETURN -> %s \n", betDescr.c_str());
+
+                    std::vector<string> entry;
+
+                    // Event ID.
+                    entry.emplace_back(strs[2].c_str());
+                    // Result
+                    entry.emplace_back(strs[3].c_str());
+
+                    results.push_back(entry);
+                }
+            }
+        }
     }
 
     return results;
@@ -886,14 +876,14 @@ std::vector<CTxOut> GetBetPayoutsForTransactions(std::vector<CTransaction> txs) 
  *
  * @return payout vector.
  */
-std::vector<CTxOut> GetBetPayouts() {
+std::vector<CTxOut> GetBetPayouts( int height ) {
 
     std::vector<CTxOut> vexpectedPayouts;
     int nCurrentHeight = chainActive.Height();
 
     // Get all the results posted in the latest block.
-    std::vector<std::vector<std::string>> results = getEventResults( );
-    printf( "Results found: %li \n", results.size() );
+    std::vector<std::vector<std::string>> results = getEventResults( height);
+    LogPrintf( "Results found: %li \n", results.size() );
 
     // Set the Oracle wallet address. 
     std::string OracleWalletAddr = "";
@@ -920,7 +910,6 @@ std::vector<CTxOut> GetBetPayouts() {
         }
 
         unsigned int oddsDivisor    = 10000;
-        unsigned int sixPercent     = 600;
         unsigned int latestHomeOdds = 0;
         unsigned int latestAwayOdds = 0;
         unsigned int latestDrawOdds = 0;
@@ -1055,7 +1044,7 @@ std::vector<CTxOut> GetBetPayouts() {
                                     }
                                     
                                     // printf("Fees -> %li", ((( winnings - betAmount) / COIN) * sixPercent ));
-                                    
+
                                     payout = ((winnings-(winnings-(betAmount*oddsDivisor))/100*6)/oddsDivisor);
 
                                     // TODO - May allow user to specify the address in future release.
@@ -1077,7 +1066,7 @@ std::vector<CTxOut> GetBetPayouts() {
 
                                     // Only add valid payouts to the vector.
                                     if(payout > 0){
-                                        // Add wining bet payout to the bet vector array.
+                                        // Add wining bet payout to the bet vector.
                                         vexpectedPayouts.emplace_back(payout, GetScriptForDestination(CBitcoinAddress(payoutAddress).Get()), betAmount);
                                     }
                                 }

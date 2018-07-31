@@ -1902,7 +1902,7 @@ int64_t GetBlockPayouts( std::vector<CTxOut>& vexpectedPayouts, CAmount& nMNBetR
         vexpectedPayouts.emplace_back(nDevReward, GetScriptForDestination(CBitcoinAddress( devPayoutAddr ).Get()));
         vexpectedPayouts.emplace_back(nOMNOReward, GetScriptForDestination(CBitcoinAddress( OMNOPayoutAddr ).Get()));
 
-        //nMNBetReward = totalAmountBet * 0.024;
+        ///nMNBetReward = totalAmountBet * 0.024;
         nPayout += nDevReward + nOMNOReward;
     }
  
@@ -1957,9 +1957,9 @@ int64_t GetMasternodePayment(int nHeight, int64_t blockValue, int nMasternodeCou
         return GetSeeSaw(blockValue, nMasternodeCount, nHeight);
     } else {
         //When zWGR is staked, masternode only gets 2 WGR
-        ret = 3 * COIN;
+        ret = blockValue * 0.75;
         if (isZWGRStake)
-            ret = 2 * COIN;
+            ret = blockValue - (3 * COIN);
     }
 
     return ret;
@@ -2729,13 +2729,11 @@ static int64_t nTimeConnect = 0;
 static int64_t nTimeIndex = 0;
 static int64_t nTimeCallbacks = 0;
 static int64_t nTimeTotal = 0;
-int64_t blockNo = 0;
-std::vector<CTxOut> vexpectedPayout;
 
 bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, bool fJustCheck, bool fAlreadyChecked)
 {
 
-    std::vector<CTxOut> GetBetPayouts();
+    //std::vector<CTxOut> GetBetPayouts();
 
     AssertLockHeld(cs_main);
     // Check it again in case a previous version let a bad block in
@@ -2957,37 +2955,22 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     // Calculate the expected bet payouts.
     std::vector<CTxOut> vExpectedPayouts;
 
-    printf("\nMAIN BLOCK: %i \n", (pindex->nHeight));
-
-    vExpectedPayouts = GetBetPayouts();
-    nExpectedMint += GetBlockPayouts(vExpectedPayouts, nMNBetReward );
+    //printf("\nMAIN BLOCK: %i \n", (pindex->nHeight));
+    vExpectedPayouts = GetBetPayouts(pindex->nHeight - 1);
+    nExpectedMint += GetBlockPayouts(vExpectedPayouts, nMNBetReward);
     nExpectedMint += nMNBetReward;
 
-    for (unsigned int l = 0; l < vExpectedPayouts.size(); l++) {
-        printf("MAIN EXPECTED: %s \n", vExpectedPayouts[l].ToString().c_str());
-    }
+    //for (unsigned int l = 0; l < vExpectedPayouts.size(); l++) {
+    //    printf("MAIN EXPECTED: %s \n", vExpectedPayouts[l].ToString().c_str());
+    //}
 
     // Validate bet payouts nExpectedMint against the block pindex->nMint to ensure reward wont pay to much.
     if ( !IsBlockValueValid( block, nExpectedMint, pindex->nMint ) ) {
         return state.DoS(100, error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)", FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)), REJECT_INVALID, "bad-cb-amount");
     }
 
-    // If we have payouts then store the next block index and the vExpectedPayouts so we can validate them on the next block.
-    if( vExpectedPayouts.size() > 0){
-        blockNo = pindex->nHeight + 1;
-        vexpectedPayout = vExpectedPayouts;
-
-        LogPrintf("Block and payous stored: %i \n", blockNo);
-    }
-
-    // Validate the payout TX's so a miner cant game the payouts.
-    if( blockNo == pindex->nHeight ){
-        LogPrintf("Run block val: %li \n ", pindex->nHeight);
-
-        // Validate the payout vector against the block containing the payout TX's.
-        if (!IsBlockPayoutsValid(vexpectedPayout, pindex->nHeight)) {
-            return state.DoS(100, error("ConnectBlock() : Bet payout TX's don't match up with block payout TX's %i ", pindex->nHeight), REJECT_INVALID, "bad-cb-payout");
-        }
+    if (!IsBlockPayoutsValid(vExpectedPayouts, block)) {
+        return state.DoS(100, error("ConnectBlock() : Bet payout TX's don't match up with block payout TX's %i ", pindex->nHeight), REJECT_INVALID, "bad-cb-payout");
     }
 
     vExpectedPayouts.clear();
@@ -3101,21 +3084,13 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
  * @param nHeight - The current chain height.
  * @return
  */
-bool IsBlockPayoutsValid( std::vector<CTxOut> vExpectedPayouts, int nHeight ) {
+bool IsBlockPayoutsValid( std::vector<CTxOut> vExpectedPayouts, CBlock block ) {
+
     unsigned long size = vExpectedPayouts.size();
 
     // If we have payouts to validate.
     if (size > 0) {
 
-        int curHeight = chainActive.Height();
-
-        CBlockIndex *BlockIndex = NULL;
-        BlockIndex = chainActive[curHeight];
-
-        if (BlockIndex == NULL) { return true; }
-
-        CBlock block;
-        ReadBlockFromDisk(block, BlockIndex);
         CTransaction &tx = block.vtx[1];
 
         // Get the vin staking value so we can use it to find out how many staking TX in the vouts.
@@ -3169,18 +3144,15 @@ bool IsBlockPayoutsValid( std::vector<CTxOut> vExpectedPayouts, int nHeight ) {
             LogPrintf("Bet Address %s  - Expected Bet Address: %s \n", betAddrS.c_str(), expectedAddrS.c_str() );
 
             // Check vExpected matches the tx value.
-            if (vExpected != voutValue && betAddrS == expectedAddrS) {
+            if (vExpected != voutValue || betAddrS != expectedAddrS) {
                 LogPrintf("Validation failed! \n");
                 return false;
             }
         }
     }
 
-    // Reset these variables for the the next payout block to be validated.
-    blockNo = 0;
-    vexpectedPayout.clear();
 
-    LogPrintf( "Payout Block is valid! \n" );
+    //LogPrintf( "Payout Block is valid! \n" );
 
     return true;
 }
