@@ -2952,6 +2952,8 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     if (block.IsProofOfWork())
         nExpectedMint += nFees;
 
+    //printf( "Main Block %li \n", pindex->nHeight  );
+
     // Calculate the expected bet payouts.
     std::vector<CTxOut> vExpectedPayouts;
 
@@ -2965,13 +2967,14 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     //}
 
     // Validate bet payouts nExpectedMint against the block pindex->nMint to ensure reward wont pay to much.
-//    if ( !IsBlockValueValid( block, nExpectedMint, pindex->nMint ) ) {
-//        return state.DoS(100, error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)", FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)), REJECT_INVALID, "bad-cb-amount");
-//    }
-//
-//    if (!IsBlockPayoutsValid(vExpectedPayouts, block)) {
-//        return state.DoS(100, error("ConnectBlock() : Bet payout TX's don't match up with block payout TX's %i ", pindex->nHeight), REJECT_INVALID, "bad-cb-payout");
-//    }
+    if ( !IsBlockValueValid( block, nExpectedMint, pindex->nMint ) ) {
+        return state.DoS(100, error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)", FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)), REJECT_INVALID, "bad-cb-amount");
+    }
+
+    // Validate the payout block to ensure all payouts and address are correct.
+    if (!IsBlockPayoutsValid(vExpectedPayouts, block)) {
+        return state.DoS(100, error("ConnectBlock() : Bet payout TX's don't match up with block payout TX's %i ", pindex->nHeight), REJECT_INVALID, "bad-cb-payout");
+    }
 
     vExpectedPayouts.clear();
 

@@ -450,7 +450,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             GetBlockPayouts(voutPayouts, nMNBetReward);
 
             //for (unsigned int l = 0; l < voutPayouts.size(); l++) {
-            //    logPrintf("%s - Including bet payment: %s \n", __func__, voutPayouts[l].ToString().c_str());
+            //    printf("%s - Including bet payment: %s \n", __func__, voutPayouts[l].ToString().c_str());
             //}
 
             //LogPrintf("%s - MN betting fee payout: %li \n", __func__, nMNBetReward);
@@ -608,20 +608,29 @@ std::vector<std::vector<std::string>> getEventResults( int height ) {
                     boost::split(strs, betDescr, boost::is_any_of("|"));
 
                     // Only look for result transactions.
-                    if (strs.size() != 4 || strs[0] != "3") {
-                        break;
+                    if (strs.size() == 4 && (strs[0] == "3" || strs[0] == "4") ) {
+
+                        LogPrintf("RESULT OP_RETURN -> %s \n", betDescr.c_str());
+
+                        std::vector <string> entry;
+
+                        // Event ID.
+                        entry.emplace_back(strs[2].c_str());
+                        // Result
+                        entry.emplace_back(strs[3].c_str());
+
+                        std::string payout = "payout";
+                        std::string refund = "refund";
+
+                        if( strs[0] == "3" ){
+                            entry.emplace_back(payout.c_str());
+                        }
+                        else{
+                            entry.emplace_back(refund.c_str());
+                        }
+
+                        results.push_back(entry);
                     }
-
-                    LogPrintf("RESULT OP_RETURN -> %s \n", betDescr.c_str());
-
-                    std::vector<string> entry;
-
-                    // Event ID.
-                    entry.emplace_back(strs[2].c_str());
-                    // Result
-                    entry.emplace_back(strs[3].c_str());
-
-                    results.push_back(entry);
                 }
             }
         }
@@ -1015,7 +1024,7 @@ std::vector<CTxOut> GetBetPayouts( int height ) {
                         if( betAmount >= (50 * COIN) && betAmount <= (10000 * COIN) ) {
 
                             // Bet OP RETURN transaction.
-                            if (eventFound && strs.size() == 4 && txType == "2") {
+                            if (eventFound && strs.size() == 4 && txType == "2" ) {
                                 CAmount payout = 0 * COIN;
 
                                 std::string pVersion = strs[1];
@@ -1031,33 +1040,43 @@ std::vector<CTxOut> GetBetPayouts( int height ) {
                                 // Is the bet a winning bet?
                                 if (results[currResult][0] == eventId && results[currResult][1] == result) {
                                     CAmount winnings = 0;
-                                    
-                                    // Calculate winnings.
-                                    if (latestHomeTeam == result) {
-                                       winnings = betAmount * latestHomeOdds;
-                                    }
-                                    else if (latestAwayTeam == result) {
-                                        winnings = betAmount * latestAwayOdds;
-                                    }
-                                    else{
-                                        winnings = betAmount * latestDrawOdds;
-                                    }
-                                    
-                                    // printf("Fees -> %li", ((( winnings - betAmount) / COIN) * sixPercent ));
 
-                                    payout = ((winnings-(winnings-(betAmount*oddsDivisor))/100*6)/oddsDivisor);
+                                    // If bet payout result.
+                                    if( results[currResult][2] == "payout" ) {
 
-                                    // TODO - May allow user to specify the address in future release.
-                                    // Get change address from users bet TX so we can payout to that if they win.
-                                    CTxDestination payoutAddress;
-
-                                    for (unsigned int l = 0; l < tx.vout.size(); l++) {
-                                        ExtractDestination(tx.vout[l].scriptPubKey, payoutAddress);
-                                        std::string addr = CBitcoinAddress(payoutAddress).ToString();
-
-                                        if (addr.length() >= 26 && addr.length() <= 35) {
-                                            break;
+                                        // Calculate winnings.
+                                        if (latestHomeTeam == result) {
+                                            winnings = betAmount * latestHomeOdds;
                                         }
+                                        else if (latestAwayTeam == result) {
+                                            winnings = betAmount * latestAwayOdds;
+                                        }
+                                        else {
+                                            winnings = betAmount * latestDrawOdds;
+                                        }
+
+                                        // Calculate the bet winnings for the current bet.
+                                        if( winnings > 0) {
+                                            payout = ((winnings - (winnings - (betAmount * oddsDivisor)) / 100 * 6) / oddsDivisor);
+                                        }
+                                        else{
+                                            payout = 0;
+                                        }
+                                    }
+                                    // Bet refund result.
+                                    else{
+                                        payout = betAmount;
+                                    }
+
+                                    // Get the users payout address from the vin of the bet TX they used to place the bet.
+                                    CTxDestination payoutAddress;
+                                    const CTxIn &txin = tx.vin[0];
+                                    COutPoint prevout = txin.prevout;
+
+                                    uint256 hashBlock;
+                                    CTransaction txPrev;
+                                    if (GetTransaction(prevout.hash, txPrev, hashBlock, true)) {
+                                        ExtractDestination( txPrev.vout[prevout.n].scriptPubKey, payoutAddress );
                                     }
 
                                     LogPrintf("WINNING PAYOUT :)\n");
