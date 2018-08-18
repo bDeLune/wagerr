@@ -1,6 +1,9 @@
 #!/bin/sh
 # Copyright (c) 2014-2015 The Bitcoin Core developers
+<<<<<<< HEAD
 # Copyright (c) 2018 The Wagerr Core developers
+=======
+>>>>>>> eddb93830... Build: Update build system to upstream master
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
