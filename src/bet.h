@@ -82,6 +82,24 @@ public:
     uint32_t nTotalPoints;
     uint32_t nTotalOverOdds;
     uint32_t nTotalUnderOdds;
+    uint32_t nMoneyLineHomePotentialLiability;
+    uint32_t nMoneyLineAwayPotentialLiability;
+    uint32_t nMoneyLineDrawPotentialLiability;
+    uint32_t nSpreadHomePotentialLiability;
+    uint32_t nSpreadAwayPotentialLiability;
+    uint32_t nSpreadPushPotentialLiability;
+    uint32_t nTotalOverPotentialLiability;
+    uint32_t nTotalUnderPotentialLiability;
+    uint32_t nTotalPushPotentialLiability;
+    uint32_t nMoneyLineHomeBets;
+    uint32_t nMoneyLineAwayBets;
+    uint32_t nMoneyLineDrawBets;
+    uint32_t nSpreadHomeBets;
+    uint32_t nSpreadAwayBets;
+    uint32_t nSpreadPushBets;
+    uint32_t nTotalOverBets;
+    uint32_t nTotalUnderBets;
+    uint32_t nTotalPushBets;
 
     // Default Constructor.
     CPeerlessEvent() {}
@@ -111,6 +129,24 @@ public:
         READWRITE(nTotalPoints);
         READWRITE(nTotalOverOdds);
         READWRITE(nTotalUnderOdds);
+        READWRITE(nMoneyLineHomePotentialLiability);
+        READWRITE(nMoneyLineAwayPotentialLiability);
+        READWRITE(nMoneyLineDrawPotentialLiability);
+        READWRITE(nSpreadHomePotentialLiability);
+        READWRITE(nSpreadAwayPotentialLiability);
+        READWRITE(nSpreadPushPotentialLiability);
+        READWRITE(nTotalOverPotentialLiability);
+        READWRITE(nTotalUnderPotentialLiability);
+        READWRITE(nTotalPushPotentialLiability);
+        READWRITE(nMoneyLineHomeBets);
+        READWRITE(nMoneyLineAwayBets);
+        READWRITE(nMoneyLineDrawBets);     
+        READWRITE(nSpreadHomeBets);
+        READWRITE(nSpreadAwayBets);
+        READWRITE(nSpreadPushBets);
+        READWRITE(nTotalOverBets);
+        READWRITE(nTotalUnderBets); 
+        READWRITE(nTotalPushBets);
     }
 };
 
@@ -347,10 +383,10 @@ public:
     static void RemoveEvent(CPeerlessEvent pe);
 };
 
-/** Find peerless events. **/
+/** Find peerless results. **/
 std::vector<CPeerlessResult> getEventResults(int height);
 
-/** Find chain games lotto result. **/
+/** Find chain games lotto results. **/
 std::pair<std::vector<CChainGamesResult>,std::vector<std::string>> getCGLottoEventResults(int height);
 
 /** Get the peerless winning bets from the block chain and return the payout vector. **/
@@ -359,11 +395,16 @@ std::vector<CTxOut> GetBetPayouts(int height);
 /** Get the chain games winner and return the payout vector. **/
 std::vector<CTxOut> GetCGLottoBetPayouts(int height);
 
-/** Set a peerless event spread odds **/
+void SetEventMoneylineOdds(CPeerlessUpdateOdds mEventOdds);
+
+/** Set a peerless event's spread odds **/
 void SetEventSpreadOdds(CPeerlessSpreadsEvent sEventOdds);
 
-/** Set a peerless event total odds **/
+/** Set a peerless event's total odds **/
 void SetEventTotalOdds(CPeerlessTotalsEvent tEventOdds);
+
+/** Set a peerless event accumulators **/
+void SetEventAccummulators (CPeerlessBet plBet, CAmount betAmount);
 
 /** Set a peerless event money line odds **/
 void SetEventMLOdds(CPeerlessUpdateOdds mEventOdds);

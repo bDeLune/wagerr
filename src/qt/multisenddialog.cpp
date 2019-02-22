@@ -11,6 +11,10 @@
 #include "base58.h"
 #include "init.h"
 #include "walletmodel.h"
+#include <QLineEdit>
+#include <QMessageBox>
+#include <boost/lexical_cast.hpp>
+#include <QStyle>
 
 #include <QStyle>
 

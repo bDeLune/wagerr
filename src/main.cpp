@@ -1899,14 +1899,14 @@ double ConvertBitsToDouble(unsigned int nBits)
 
 int64_t GetBlockValue(int nHeight)
 {
-   
+
     if (Params().NetworkID() == CBaseChainParams::REGTEST || Params().NetworkID() == CBaseChainParams::TESTNET) {
         if (nHeight == 0) {
             // Genesis block
             return 0 * COIN;
         } else if (nHeight == 1) {
             /* PREMINE: Current available wagerr on DEX marketc 198360471 wagerr
-            Info abobut premine: 
+            Info abobut premine:
             Full premine size is 198360471. First 100 blocks mine 250000 wagerr per block - 198360471 - (100 * 250000) = 173360471
             */
             // 87.4 % of premine
@@ -1915,7 +1915,7 @@ int64_t GetBlockValue(int nHeight)
             return 250000 * COIN;
         } else if (nHeight >= 200 && nHeight <= Params().LAST_POW_BLOCK()) {
             return 100000 * COIN;
-        } else if (nHeight > Params().LAST_POW_BLOCK() && nHeight <= Params().Zerocoin_Block_V2_Start()) { 
+        } else if (nHeight > Params().LAST_POW_BLOCK() && nHeight <= Params().Zerocoin_Block_V2_Start()) {
             return 3.8 / 90 * 100 * COIN;
         } else if (nHeight > Params().Zerocoin_Block_V2_Start()) {
             return 3.8 * COIN;
@@ -1924,7 +1924,7 @@ int64_t GetBlockValue(int nHeight)
         }
     }
 
-    
+
     // MAIN
     int64_t nSubsidy = 0;
     if (nHeight == 0) {
@@ -1932,7 +1932,7 @@ int64_t GetBlockValue(int nHeight)
         nSubsidy = 0 * COIN;
     } else if (nHeight == 1) {
         /* PREMINE: Current available wagerr on DEX marketc 198360471 wagerr
-        Info abobut premine: 
+        Info abobut premine:
         Full premine size is 198360471. First 100 blocks mine 250000 wagerr per block - 198360471 - (100 * 250000) = 173360471
         */
         // 87.4 % of premine
@@ -3043,7 +3043,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
     // Validate bet payouts nExpectedMint against the block pindex->nMint to ensure reward wont pay to much.
     /* **TODO**
-     * 
+     *
      * Kokary: there are some oddities with fee calculation:
      * - Coinstake transactions do have fees, resulting in rougly 4400 satoshi less mints
      * - When there are no masternodes to pay, those MN rewards are not paid, resulting in 1*COIN less than expected mints
@@ -3054,12 +3054,16 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
      * Though if we keep this check for minimum mint, it should be moved to IsBlockValueValid().
      */
     if (Params().NetworkID() == CBaseChainParams::TESTNET && (pindex->nHeight >= 15195 && pindex->nHeight <= 15220)) {
+    if (Params().NetworkID() == CBaseChainParams::TESTNET && ((pindex->nHeight >= 15195 && pindex->nHeight <= 15220) || ( pindex->nHeight >= 25960 && pindex->nHeight <= 25970 ))) {
         LogPrintf("Skipping validation of mint size on testnet subset");
     } else if (pindex->nMint > nExpectedMint || pindex->nMint < (nExpectedMint - 2*COIN) || !IsBlockValueValid( block, nExpectedMint, pindex->nMint)) {
         return state.DoS(100, error("ConnectBlock() : reward pays wrong amount (actual=%s vs limit=%s)", FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)), REJECT_INVALID, "bad-cb-amount");
     }
 
     if (!IsBlockPayoutsValid(vExpectedAllPayouts, block))
+    if (Params().NetworkID() == CBaseChainParams::TESTNET && ( pindex->nHeight >= 25960 && pindex->nHeight <= 25970 )) {
+        LogPrintf("Skipping validation of mint size on testnet subset");
+    } else if  (!IsBlockPayoutsValid(vExpectedAllPayouts, block))
         return state.DoS(100, error("ConnectBlock() : Bet payout TX's don't match up with block payout TX's %i ", pindex->nHeight), REJECT_INVALID, "bad-cb-payout");
 
     // Clear all the payout vectors.
@@ -4619,6 +4623,126 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
     bool eiUpdated = false;
     // Look through the block for any events, results or mapping TX.
     BOOST_FOREACH (CTransaction& tx, block.vtx) {
+
+        // Ensure the event TX has come from Oracle wallet.
+        const CTxIn &txin = tx.vin[0];
+        bool validOracleTx = IsValidOracleTx(txin);
+
+        // If a valid OMNO transaction.
+        if (validOracleTx) {
+
+            for (unsigned int i = 0; i < tx.vout.size(); i++) {
+                const CTxOut& txout = tx.vout[i];
+                std::string s = txout.scriptPubKey.ToString();
+
+                if (0 == strncmp(s.c_str(), "OP_RETURN", 9)) {
+                    vector<unsigned char> v = ParseHex(s.substr(9, string::npos));
+                    std::string opCode(v.begin(), v.end());
+
+                    // TODO - Optimise the OP code validation, we don't need to compare current OP code against all TX types.
+                    // if it matches any TX type the rest should be skipped.
+
+                    // If events found in block add them to the events index.
+                    CPeerlessEvent plEvent;
+                    if (CPeerlessEvent::FromOpCode(opCode, plEvent)) {
+                        CEventDB::AddEvent(plEvent);
+                        eiUpdated = true;
+                    }
+
+                    // If results found in block remove event from event index.
+                    CPeerlessResult plResult;
+                    if (CPeerlessResult::FromOpCode(opCode, plResult)) {
+                        CEventDB::RemoveEvent(plEvent);
+                        eiUpdated = true;
+                    }
+
+                    // If update money line odds TX found in block, update the event index.
+                    CPeerlessUpdateOdds puo;
+                    if (CPeerlessUpdateOdds::FromOpCode(opCode, puo)) {
+                        SetEventMLOdds(puo);
+                        eiUpdated = true;
+                    }
+
+                    // If spread odds TX found then update the spread odds for that event object.
+                    CPeerlessSpreadsEvent spreadEvent;
+                    if (CPeerlessSpreadsEvent::FromOpCode(opCode, spreadEvent)) {
+                        SetEventSpreadOdds(spreadEvent);
+                        eiUpdated = true;
+                    }
+
+                    // If total odds TX found then update the total odds for that event object.
+                    CPeerlessTotalsEvent totalsEvent;
+                    if (CPeerlessTotalsEvent::FromOpCode(opCode, totalsEvent)) {
+                        SetEventTotalOdds(totalsEvent);
+                        eiUpdated = true;
+                    }
+
+                    // If mapping found then add it to the relating map index and write the map index to disk.
+                    CMapping cMapping;
+                    if (CMapping::FromOpCode(opCode, cMapping)) {
+                        if (cMapping.nMType == sportMapping) {
+                            CMappingDB::AddSport(cMapping);
+
+                            mappingIndex_t sportsIndex;
+                            CMappingDB mdb("sports.dat");
+                            mdb.Write(sportsIndex, block.GetHash());
+                        }
+                        else if (cMapping.nMType == roundMapping) {
+                            CMappingDB::AddRound(cMapping);
+
+                            mappingIndex_t roundsIndex;
+                            CMappingDB mdb("rounds.dat");
+                            mdb.Write(roundsIndex, block.GetHash());
+                        }
+                        else if (cMapping.nMType == teamMapping) {
+                            CMappingDB::AddTeam(cMapping);
+
+                            mappingIndex_t teamsIndex;
+                            CMappingDB mdb("teams.dat");
+                            mdb.Write(teamsIndex, block.GetHash());
+                        }
+                        else if (cMapping.nMType == tournamentMapping) {
+                            CMappingDB::AddTournament(cMapping);
+
+                            mappingIndex_t tournamentsIndex;
+                            CMappingDB mdb("tournaments.dat");
+                            mdb.Write(tournamentsIndex, block.GetHash());
+                        }
+                    }
+                }
+            }
+
+            // Write event index to events.dat file only if it has been updated.
+            if (eiUpdated) {
+                CEventDB edb;
+                eventIndex_t eventIndex;
+                edb.GetEvents(eventIndex);
+                edb.Write(eventIndex, block.GetHash());
+            }
+        }
+    }
+
+    bool eiUpdated = false;
+    // Look through the block for any events, results or mapping TX.
+    BOOST_FOREACH (CTransaction& tx, block.vtx) {
+
+        // Search for any new bets
+        for (unsigned int i = 0; i < tx.vout.size(); i++) {
+            const CTxOut& txout = tx.vout[i];
+            std::string s = txout.scriptPubKey.ToString();
+
+            if (0 == strncmp(s.c_str(), "OP_RETURN", 9)) {
+                vector<unsigned char> v = ParseHex(s.substr(9, string::npos));
+                 std::string opCode(v.begin(), v.end());
+
+                CPeerlessBet plBet;
+                if (CPeerlessBet::FromOpCode(opCode, plBet)) {
+                    CAmount betAmount = txout.nValue;
+                    SetEventAccummulators(plBet, betAmount);
+                    eiUpdated = true;
+                }
+            }
+        }
 
         // Ensure the event TX has come from Oracle wallet.
         const CTxIn &txin = tx.vin[0];
